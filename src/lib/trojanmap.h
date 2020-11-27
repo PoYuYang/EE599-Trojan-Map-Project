@@ -6,6 +6,7 @@
 #include <iostream>
 #include <map>
 #include <vector>
+#include <set>
 
 // A Node is the location of one point in the map.
 class Node {
@@ -66,7 +67,7 @@ class TrojanMap {
 
   // Get the distance between 2 nodes.
   double CalculateDistance(const Node &a, const Node &b);
-
+  double toRad(double degree);
   // Calculates the total path length for the locations inside the vector.
   double CalculatePathLength(const std::vector<std::string> &path);
 
@@ -78,8 +79,15 @@ class TrojanMap {
 
   // Given the name of two locations, it should return the **ids** of the nodes
   // on the shortest path.
+
+  void createPath(std::string target,  std::map<std::string,std::string> prevNode,std::vector<std::string>& path);
+  std::string FindMin(std::map<std::string,double> distance, std::map<std::string, bool> visited);
+
+  //Dijkstra
   std::vector<std::string> CalculateShortestPath(std::string location1_name,
                                                  std::string location2_name);
+  //Bellman Ford
+  std::vector<std::string> CalculateShortestPathBellman(std::string location1_name, std::string location2_name);
 
   // Given a vector of location ids, it should reorder them such that the path
   // that covers all these points has the minimum length.
@@ -89,7 +97,15 @@ class TrojanMap {
   // path.)
   std::pair<double, std::vector<std::vector<std::string>>> TravellingTrojan(
       std::vector<std::string> &location_ids);
+  void backtracking(std::vector<std::vector<std::string>>& ans, std::vector<std::string>& location_ids, int index);
 
+  std::pair<double, std::vector<std::vector<std::string>>> TravellingTrojanBruteForceImprovement(
+      std::vector<std::string> &location_ids);
+  double backtracking2(std::vector<std::vector<std::string>>& ans, std::vector<std::string>& location_ids,
+                    std::vector<std::string> temp, int curr_index, double curr_cost, double& min_cost);
+
+  std::pair<double, std::vector<std::vector<std::string>>> TravellingTrojan2_Opt(std::vector<std::string> &location_ids);
+  std::vector<std::string> twoNodeSwap(int i, int j, std::vector<std::string>& path);
   //-----------------------------------------------------
 
   

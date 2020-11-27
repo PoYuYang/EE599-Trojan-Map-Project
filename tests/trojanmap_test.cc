@@ -6,7 +6,7 @@
 #include "gtest/gtest.h"
 
 
-// Test Autocomplete function
+//Test Autocomplete function
 TEST(TrojanMapTest, Autocomplete) {
   TrojanMap m;
   m.CreateGraphFromCSVFile();

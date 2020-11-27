@@ -1,21 +1,17 @@
 # EE599 Final Project - TrojanMap
 
-## TrojanMap
+## TrojanMap Overview
 
-> This project focuses on using data structures and graph search algorithms to build a mapping application.
+In this project, we solve four main problem to mimic the function on goolge map. The project focuses on using data structures and graph search algorithms to build a mapping application. User can use this project to complete:
+
+- Type the prefix (ignoring cases) and return all possible location names.
+- Inserting a location and get the latitude and longitude.
+- Find the shortest path between two locations and return the path on the map.
+- Solve the travling salesman problem with random locations, and return an animated plot.
+
+For visualizations we use OpenCV library. The area will be around USC. The map is shown below:
+
 <p align="center"><img src="img/TrojanMap.png" alt="Trojan" width="500" /></p>
-
-- Please clone the repository, look through [README.md](README.md) and fill up functions to finish in the project.
-- Please make sure that your code can run `bazel run/test`.
-- In this project, you will need to fill up [trojanmap.cc](src/lib/trojanmap.cc) and add unit tests in tests.
-- Do **Not** change or modify any given functions that are specified not to change in [trojanmap.cc](src/lib/trojanmap.cc) and [trojanmap.h](src/lib/trojanmap.h). Unexpected changes will result in zero credit. Only modify and complete the functions that are specified.
-- For coding questions, there is a **black box** testing for each question. All points are only based on passing the tests (i.e. we don't grade your work by your source code). Try to do comprehensive testing before your final submission.
-- For submission, please push your solutions to your own Github before the deadline.
-- **Due Dates**:
-  - **Specifying team members**: You can work on the project in teams of 1 to 2 students. Please [specify your team members](https://docs.google.com/spreadsheets/d/1lkI0viun0lW3rjniwAyFGl9e8kTKXqmRoRFzzxDueSE/edit?usp=sharing) by Wednesday November 4th.
-  - **Video presentation**: Monday November 23rd (In the class). Each team should create a 1 to 2 minute presentation that includes: quick introduction of the team, explanation of the solution architecture (High level. Use slides and some graphs. No need to go into code details. Focus on one interesting part and explain that if you want). You can refer to the [sample videos from the previous semester](https://github.com/ourarash/EE599_SP2020_Final_Project).
-  - **Final report: Friday**, November 27th by 6:30 pm
-- Total: 120 points. 100 points is considered full credit.
 
 ---
 
@@ -33,11 +29,282 @@ class Node {
     std::vector<std::string> neighbors; // List of the ids of all neighbor points.
 };
 ```
+---
+## Step 1: Autocomplete the location name
+
+```c++
+std::vector<std::string> Autocomplete(std::string name);
+```
+> We consider the names of nodes as the locations. Implement a method to type the partial name of the location and return a list of possible locations with partial name as prefix.
+
+In this function we trun all input into lower case,
+
+```c++
+  std::transform(name.begin(), name.end(), name.begin(), ::tolower);  
+```
+Then, compare to each name included in our dataset by using `substr(0,sizeOfPrefix)`.
+The function will return all possible loactions in a list.
+
+```c++
+std::vector<std::string> Autocomplete(std::string name);
+```
+#### Time complexity: *O(n^2)*
+> We get O(*prefixSize*) when we turn the prefix into lowercase, then we compare to each word in the dataset which cost *O(dataSize * prefixSize)*. Thus, we get *O(n^2)* time complexity.
+
+```shell
+1
+**************************************************************
+* 1. Autocomplete
+**************************************************************
+
+Please input a partial location:us
+*************************Results******************************
+USC Fisher Museum of Art
+USC Village Gym
+USC Parking
+USC Village Dining Hall
+**************************************************************
+```
+---
+
+## Step 2: Find the place
+
+```c++
+std::pair<double, double> GetPosition(std::string name);
+```
+
+> Given a location name, return the latitude and longitude. There is no duplicate location name. Mark the location on the map. If the location does not exists, return (-1, -1).
+
+```c++
+void SaveLocName();
+```
+To get the position of the locaiton name, we need to get the name's id. Therefore, we need to build a hash table with the relationship between name and id. We called `name_id`.
+#### Time Complextiy: *O(n)*, We iterate whole data to build `name_id`. Thus, it took *O(dataSize)*
+
+```c++
+std::pair<double, double> GetPosition(std::string name);
+```
+After we build the relationship between name and id, we can get the position by this hash table in constant time.
+#### Time Complexity: *O(Constant)*
+
+Example:
+
+Input: "USC Village Gym" \
+Output: (34.0252392,-118.2858186)
+
+```shell
+2
+**************************************************************
+* 2. Find the position
+**************************************************************
+
+Please input a location:USC Village Gym
+*************************Results******************************
+Latitude: 34.0252 Longitude: -118.286
+**************************************************************
+```
+
+<p align="center"><img src="img/USC_Village_Gym.png" alt="Target" width="500"/></p>
 
 ---
 
-## Prerequisites
+## Step 3: CalculateShortestPath
 
+```c++
+std::vector<std::string> CalculateShortestPath(std::string location1_name, std::string location2_name);
+```
+> Given 2 locations A and B, find the best route from A to B. The distance between 2 points is the euclidean distance using latitude and longitude.
+
+In this problem, we implement two algorithms to get the shortest path./
+- Dijkstra
+- Bellman Ford
+
+### Dijkstra
+
+***Dijkstra*** is a Greedy algorithm, which alway choose the smallest distance in each iteration. At the end of the iteration, we can get the shortest distance between starting location and all of the oter location node. Dijktra algorithm cannot handle negative weight, which do not exist in the map. Thus, we can apply Dijkstra algorithm in this problem./
+
+```c++
+ std::vector<std::string> CalculateShortestPath(std::string location1_name, std::string location2_name);
+```
+We implement Dijkstra algorithms in above function. Here is the detail of this function:
+
+1. First, we need to declare our data structure:
+
+```c++
+std::vector<std::string> path; // the shortest path
+std::unordered_map<std::string, bool> visited; // remember which node we have visited aready
+std::unordered_map<std::string, double> dis; // storage the distance between starting location and each node
+std::unordered_map<std::string, std::string> parent; // rememeber the node's parent.
+```
+2. Second, we will set up the distance which conect with the starting location.
+```c++
+double CalculateDistance(const Node &a, const Node &b);
+```
+3. Third, we start our @@iterations (iterate whole dataset):
+      Find the shortest distance in table `dis` by `findMinDistanceButNotVisited()` function, which we get the next loction will be `curr_id`. The time complextiy will be *O(dataSize)*.
+```c++
+ std::string findMinDistanceButNotVisited(std::unordered_map<std::string, double>& d, std::unordered_map<std::string, bool>& visited);
+```
+Iterate all `curr_id` neighbors, if the distance between `curr_id` and it's neighbor + current distance is shorter than previous, we updata the table, and save neighbor location's parent as `curr_id`.
+
+4. After the whole iteration, we will complete the `std::unordered_map<std::string, double> dis` table, which give us the shortest distance between starting loction and each node in the dataset.
+
+To print out the path between input A to B location, we need to use:
+
+```c++
+ void printPath(std::string target, std::unordered_map<std::string, std::string>& parent, std::vector<std::string>& path);
+```
+We backtrack the End location to start loction by there parent. The time complexity will be the path length.
+
+#### The total time complexity: *O(n^2)*
+
+> Improvement: If we save the distance in a heap data struture, the time complexity can be improve to *O(nlogn)*.
+
+Example:
+
+Input: "Los Angeles", "Ralphs"\
+Output: [ "368173251","7360424709","269636456","1614922683","1614922687","1614922692","1614922696",           "544348509","544348510","2193435055","63785522","4011837232","4835551074","4835551066","4835551070","6813565322","123241961","6813565326","4012842277","4835551064","5556117115","5556117120","20400292","6813513564","6813513563","122659187","7863689395","4835551084","2613117900","7863656075","7863689388","6807580191","6787803674","6787803666","6787803661","6787803658","6787803653","6787803649","6816822864","122659191","2613117891","6813379507","6985903602","6813416161","122814440","7200139036","7882624618","6813416166","6807536642","6807320427","6807536647","6813416171","6813416123","122814447","6813416159","6813405266","123178871","2613117906","2613156405","6807243572","6813405267","6987230634","6987230635","123178876","6816193783","6389467806","6816193784","6813405269","6816831441","6808093919","6808093913","6808093910","6787470571","5559640911","2578244375"]
+
+```shell
+3
+**************************************************************
+* 3. CalculateShortestPath
+**************************************************************
+*************************Results******************************
+368173251
+7360424709
+269636456
+1614922683
+
+...
+
+6787470571
+5559640911
+2578244375
+**************************************************************
+```
+
+<p align="center"><img src="img/p3_LostoRalphs.png" alt="Routing" width="500"/></p>
+
+### Bellman Ford
+
+***Bellman Ford*** algorithm is also a Greedy approach. Different from Dijkstra algorithm, we updata the distance table for every node in each iteration. Untill no more update we break out the loop and get the finaly result. In our problem, the distance between each node will not be negative. However, Bellman Ford algorithms can handle negative weights.
+
+```c++
+std::vector<std::string> CalculateShortestPathBellman(std::string location1_name, std::string location2_name);
+```
+We implement Bellman Ford algorithms in above function. Here is the detail of this function:
+
+1. First, we need to declare the our data structure: (simlar with Dijkstra)
+```c++
+std::vector<std::string> path;
+std::unordered_map<std::string, bool> visited;
+std::unordered_map<std::string,double> distance;
+std::unordered_map<std::string,std::string> parent;
+std::vector<std::pair<double, std::pair<std::string,std::string>>> each_dis; // save the distance between two locations
+```
+2, Second, we intialize above data structure, it is same as Dijsktra in this step.
+3. Third, we start the iteration:
+```
+  for 1 to (data Size -1):
+    for all data:
+      if previous distance(start point to i location) is larger than current distance + current location:
+          update the distance
+    if no update, break the loop
+```
+4. Use the same technique as dijkstra, tracks back the parent to get the path.
+
+#### Time Complexity: *O(n^2)*
+The worst case will be O((data.size - 1)* data size), however, if there is no update the function will end faster.
+
+---
+## Step 4: The Travelling Trojan Problem (AKA Traveling salesman!)
+
+> In this section, we are going to solve the Traveling Salesman Problem. The input will be a vector with k random locations. We need to find out the best route to travel all location and return back to the starting location. We can assume every location can reach every location in the list (Complete graph. Do not care the neighbors).
+
+```c++
+std::pair<double, std::vector<std::vector<std::string>>> TravellingTrojan(
+      std::vector<std::string> &location_ids);
+```
+
+### Brute Force Method
+```c++
+std::pair<double, std::vector<std::vector<std::string>>> TravellingTrojan(
+      std::vector<std::string> &location_ids);
+```
+In brute force method, we can try all possible route to travel all locations, then compare the distance between each route and find the smallest distance path.
+
+We use backtracking(dfs) approach to find all permutation, and get the best traveling path.
+
+#### Time Complexity: *O(n!)*
+
+Improvement: we can stop the recursion if the distance is larger than the previous distance. It will not improve ploynomial run time. However, It save a lot of time.
+
+```shell
+4
+**************************************************************
+* 4. Travelling salesman problem                              
+**************************************************************
+
+In this task, we will select N random points on the map and you need to find the path to travel these points and back to the start point.
+
+Please input the number of the places:10
+Calculating ...
+*************************Results******************************
+5618016860
+4343588867
+269633656
+6813379442
+6805827703
+6815190429
+5618016860
+**************************************************************
+The distance of the path is:3.09011
+**************************************************************
+You could find your animation at src/lib/output.avi
+```
+
+Best Route | Animation
+-----------|----------
+<img src="img/bt_6node_best.png" alt="TSP 6 node" width="450"/> | <img src="img/bt_6node.gif" alt="TSP 6 video" width="450"/>
+
+### 2-opt Heuristic
+
+```c++
+std::pair<double, std::vector<std::vector<std::string>>> TravellingTrojan2_opt(std::vector<std::string> &location_ids);
+```
+In 2-opt Heuristic, we can get the result way much faster than brute force approach. The main idea of 2-opt approach is to remove the crossing routes to find a better solution. We try to swap the node and see if there is an improvement. When there is no improvement, we will break out the loop.
+
+This is the function to swap the to distance: 
+```c++
+std::vector<std::string> twoNodeSwap(int i, int j, std::vector<std::string>& path);
+```
+
+> However, 2-opt is an heuristic approach, we cannot get the best result every time. We can just get the local minmimum result. 
+
+```shell
+Try the same node in brute force method.
+The distance of the path is:4.52257
+we get the same result !!
+```
+Best Route | Animation
+-----------|----------
+<img src="img/opt_6node_best.png" alt="TSP 6 node" width="450"/> | <img src="img/opt_6node.gif" alt="TSP 6 video" width="450"/>
+
+> Here we try 30 locations for opt-2 approach:
+
+<p align="center"><img src="img/30node_best.png" alt="TSP 30" width="500"/></p>
+
+<p align="center"><img src="img/30node.gif" alt="TSP 30 videos" width="500"/></p>
+
+---
+## Conclusion
+In this project, we implement different algorthims to get the shortest path and Travel Salesman Problem. The problems are mostly focus on graph search problem. We use the data structue which extract from [map.csv](src/lib/map.csv), and compare with different algorithm's performance and property. Moreover, we also implenment heuristic algortims which might not get the best result, but it can save lots of run time.  
+
+---
+## Teammate: Liang-Chun Chen, Po Yu Yang
+
+---
 ### OpenCV Installation
 
 For visualizations we use OpenCV library. You will use this library as a black box and don't need to worry about the graphic details.
@@ -80,7 +347,6 @@ make install
 ```
 
 ---
-
 ## Run the program
 
 Please run:
@@ -101,7 +367,7 @@ If everything is correct, this menu will show up.
 * 5. Exit
 **************************************************************
 ```
-
+---
 ## Test the program
 
 We create some tests for you to test your program, please run
@@ -114,199 +380,3 @@ Please add you test in the [trojanmap_test_student.cc](tests/trojanmap_test_stud
 ```shell
 bazel test tests:trojanmap_test_student
 ```
-
-## Your task is to implement a function for each menu item
-
-## Step 1: Autocomplete the location name
-
-```c++
-std::vector<std::string> Autocomplete(std::string name);
-```
-
-We consider the names of nodes as the locations. Implement a method to type the partial name of the location and return a list of possible locations with partial name as prefix. Please treat uppercase and lower case as the same character.
-
-Example:
-
-Input: "ch" \
-Output: ["ChickfilA", "Chipotle Mexican Grill"]
-
-Input: "ta" \
-Output: ["Target", "Tap Two Blue"]
-
-```shell
-1
-**************************************************************
-* 1. Autocomplete
-**************************************************************
-
-Please input a partial location:ch
-*************************Results******************************
-ChickfilA
-Chipotle Mexican Grill
-**************************************************************
-```
-
-## Step 2: Find the place
-
-```c++
-std::pair<double, double> GetPosition(std::string name);
-```
-
-Given a location name, return the latitude and longitude. There is no duplicate location name. Mark the locations on the map. If the location does not exists, return (-1, -1).
-
-Example:
-
-Input: "ChickfilA" \
-Output: (34.0167334, -118.2825307)
-
-Input: "Ralphs" \
-Output: (34.0317653, -118.2908339)
-
-Input: "Target" \
-Output: (34.0257016, -118.2843512)
-
-```shell
-2
-**************************************************************
-* 2. Find the position
-**************************************************************
-
-Please input a location:Target
-*************************Results******************************
-Latitude: 34.0257 Longitude: -118.284
-**************************************************************
-```
-
-<p align="center"><img src="img/Target.png" alt="Target" width="500"/></p>
-
-## Step 3: CalculateShortestPath
-
-```c++
-std::vector<std::string> CalculateShortestPath(std::string location1_name,
-                                               std::string location2_name);
-```
-
-Given 2 locations A and B, find the best route from A to B. The distance between 2 points is the euclidean distance using latitude and longitude. You can use Dijkstra algorithm or A\* algorithm. Compare the time for the different methods. Show the routes on the map. If there is no path, please return empty vector.
-
-Example:
-
-Input: "Ralphs", "ChickfilA" \
-Output: ["2578244375", "5559640911", "6787470571", "6808093910", "6808093913", "6808093919", "6816831441",
-      "6813405269", "6816193784", "6389467806", "6816193783", "123178876", "2613117895", "122719259",
-      "2613117861", "6817230316", "3642819026", "6817230310", "7811699597", "5565967545", "123318572",
-      "6813405206", "6813379482", "544672028", "21306059", "6813379476", "6818390140", "63068610", 
-      "6818390143", "7434941012", "4015423966", "5690152766", "6813379440", "6813379466", "21306060",
-      "6813379469", "6813379427", "123005255", "6807200376", "6807200380", "6813379451", "6813379463",
-      "123327639", "6813379460", "4141790922", "4015423963", "1286136447", "1286136422", "4015423962",
-      "6813379494", "63068643", "6813379496", "123241977", "4015372479", "4015372477", "1732243576",
-      "6813379548", "4015372476", "4015372474", "4015372468", "4015372463", "6819179749", "1732243544",
-      "6813405275", "348121996", "348121864", "6813405280", "1472141024", "6813411590", "216155217", 
-      "6813411589", "1837212103", "1837212101", "6820935911", "4547476733"]
-
-```shell
-3
-**************************************************************
-* 3. CalculateShortestPath
-**************************************************************
-*************************Results******************************
-2578244375
-5559640911
-6787470571
-
-...
-
-6820935911
-4547476733
-**************************************************************
-```
-
-<p align="center"><img src="img/Routing.png" alt="Routing" width="500"/></p>
-
-## Step 4: The Travelling Trojan Problem (AKA Traveling salesman!)
-
-```c++
-std::pair<double, std::vector<std::vector<std::string>>> TravellingTrojan(
-      std::vector<std::string> &location_ids);
-```
-
-In this section, we assume that a complete graph is given to you. That means each node is a neighbor of all other nodes.
-Given a vector of location ids, assume every location can reach every location in the list (Complete graph. Do not care the neighbors).
-Find the shortest route that covers all the locations and goes back to the start point. You will need to return the progress to get the shortest
-route which will be converted to a animation.  
-
-We will use the following algorithms:
-
-- Brute Force Method
-```c++
-std::pair<double, std::vector<std::vector<std::string>>> TravellingTrojan(
-      std::vector<std::string> &location_ids);
-```
-- [2-opt Heuristic](https://en.wikipedia.org/wiki/2-opt). Also see [this paper](http://cs.indstate.edu/~zeeshan/aman.pdf)
-```c++
-std::pair<double, std::vector<std::vector<std::string>>> TravellingTrojan_2opt(
-      std::vector<std::string> &location_ids);
-```
-
-Show the routes on the map. For each intermediate solution, create a new plot. Your final video presentation should include the changes to your solution.
-
-We will randomly select N points in the map and run your program.
-
-```shell
-4
-**************************************************************
-* 4. Travelling salesman problem                              
-**************************************************************
-
-In this task, we will select N random points on the map and you need to find the path to travel these points and back to the start point.
-
-Please input the number of the places:10
-Calculating ...
-*************************Results******************************
-123120189
-1931345270
-4011837224
-4011837229
-2514542032
-2514541020
-6807909279
-63068532
-214470792
-4015477529
-123120189
-**************************************************************
-The distance of the path is:4.61742
-**************************************************************
-You could find your animation at src/lib/output.avi
-```
-
-<p align="center"><img src="img/TSP.png" alt="TSP" width="500"/></p>
-
-<p align="center"><img src="img/output.gif" alt="TSP videos" width="500"/></p>
-
-## Report and Rubrics:
-
-Your final project should be checked into Github. The README of your project is your report.
-
-### Report:
-
-Your README file should include two sections:
-
-1. High-level overview of your design (Use diagrams and pictures)
-2. Detailed description of each function and its time complexity.
-3. Discussion, conclusion, and lessons learned.
-
-### Rubrics:
-
-1. Implementation of auto complete: 10 points.
-2. Implementation of GetPosition: 5 points.
-3. Implementation of shortest path: 20 points.
-4. Implementation of Travelling Trojan: 
-   1. Brute Force: 10 points
-   2. 2-opt: 15 points.
-   3. Animated plot: 10 points.
-5. Creating reasonable unit tests: 20 points.
-6. Video presentation and report: 10 points.
-7. **Extra credit items**: Maximum of 20 points:
-   1. A second shortest path algorithms (For example, you can implement both Bellman-Ford and Dijkstra): 10 points.
-   2. [3-opt](http://cs.indstate.edu/~zeeshan/aman.pdf) (If you chose to implement 2-opt for Travelling Trojan): 20 points.
-   3. [Genetic algorithm](https://www.geeksforgeeks.org/traveling-salesman-problem-using-genetic-algorithm/) implementation for Travelling Trojan: 20 points.
