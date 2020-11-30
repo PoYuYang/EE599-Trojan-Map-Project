@@ -378,7 +378,6 @@ std::vector<std::string> TrojanMap::GetNeighborIDs(std::string id) {
     return result;
 }
 
-
 /**
  * CalculateDistance: Get the distance between 2 nodes. 
  * 

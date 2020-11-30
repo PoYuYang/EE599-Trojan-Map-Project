@@ -97,7 +97,6 @@ class TrojanMap {
       std::vector<std::string> &location_ids);
   //-----------------------------------------------------
 
-  
  private:
   // A map of ids to Nodes.
   std::map<std::string, Node> data;
